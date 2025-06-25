@@ -1,26 +1,27 @@
-from .anchors import end_of_line, end_of_string, start_of_line, start_of_string
-from .assertions import (
-    after,
-    before,
-    non_word_boundary,
-    not_after,
-    not_before,
-    word_boundary,
-)
+"""
+Scrive - A fluent regex pattern builder for Python.
+
+Unified API for building complex regex patterns with chainable methods.
+
+Quick Start:
+    >>> from scrive import S
+    >>> pattern = S.digit().one_or_more().anchor_string()
+    >>> pattern.test("123")  # True
+
+Main Classes:
+    S: Unified factory class - preferred entry point
+    Scrive: Core pattern class with chainable methods
+
+For more examples and documentation, visit: https://github.com/your-repo/scrive
+"""
+
 from .core import Scrive
-from .flags import (
-    DOTALL,
-    IGNORECASE,
-    MULTILINE,
-    VERBOSE,
-    dotall,
-    ignore_case,
-    lazy,
-    multiline,
-    verbose,
-)
-from .grouping import group, grouped_as, non_capturing_group, reference_to
+from .factory import S
+
+# Useful macros
 from .macros import choice, create, decimal_range, separated_by
+
+# Common patterns for convenience
 from .patterns import (
     credit_card,
     email,
@@ -37,82 +38,13 @@ from .patterns import (
     uuidv7,
     uuidv8,
 )
-from .quantifiers import maybe, one_or_more, zero_or_more
-from .standalone import (
-    alphanumeric,
-    anchor_both,
-    anchor_end,
-    anchor_start,
-    any_char,
-    ascii,
-    carriage_return,
-    case_insensitive,
-    case_sensitive,
-    char,
-    char_range,
-    digit,
-    exactly,
-    hexadecimal,
-    invert,
-    letter,
-    lowercase,
-    newline,
-    non_ascii,
-    non_digit,
-    non_whitespace,
-    non_word_char,
-    none_of,
-    one_of,
-    raw,
-    tab,
-    uppercase,
-    whitespace,
-    word_char,
-    ref,
-    template,
-)
 
+# Main exports - unified API
 __all__ = [
-    "start_of_line",
-    "end_of_line",
-    "start_of_string",
-    "end_of_string",
-    "word_boundary",
-    "non_word_boundary",
-    "after",
-    "before",
-    "not_after",
-    "not_before",
-    "char",
-    "any_char",
-    "word_char",
-    "letter",
-    "digit",
-    "whitespace",
-    "non_whitespace",
-    "ascii",
-    "non_ascii",
-    "non_digit",
-    "non_word_char",
-    "tab",
-    "newline",
-    "carriage_return",
-    "lowercase",
-    "uppercase",
-    "alphanumeric",
-    "hexadecimal",
-    "exactly",
-    "one_of",
-    "none_of",
-    "char_range",
-    "group",
-    "grouped_as",
-    "non_capturing_group",
-    "reference_to",
-    "separated_by",
-    "decimal_range",
-    "choice",
-    "create",
+    # Primary unified API
+    "S",
+    "Scrive",
+    # Common patterns
     "email",
     "url",
     "ipv4",
@@ -127,26 +59,30 @@ __all__ = [
     "uuidv6",
     "uuidv7",
     "uuidv8",
-    "zero_or_more",
-    "one_or_more",
-    "maybe",
-    "Scrive",
-    "MULTILINE",
-    "DOTALL",
-    "VERBOSE",
-    "IGNORECASE",
-    "multiline",
-    "dotall",
-    "verbose",
-    "ignore_case",
-    "lazy",
-    "anchor_both",
-    "anchor_start",
-    "anchor_end",
-    "raw",
-    "case_insensitive",
-    "case_sensitive",
-    "invert",
-    "ref",
-    "template",
+    # Useful macros
+    "choice",
+    "create",
+    "decimal_range",
+    "separated_by",
 ]
+
+
+# Method delegation - allows both S.digit() and Scrive.digit()
+# This is done here to avoid circular imports between factory and core
+def _add_factory_methods_to_scrive():
+    """Add S factory methods as static methods to Scrive class"""
+    import inspect
+
+    for name, method in inspect.getmembers(S, predicate=inspect.isfunction):
+        if not name.startswith("_") and not hasattr(Scrive, name):
+            setattr(Scrive, name, staticmethod(method))
+
+
+# Apply the delegation after all imports are complete
+_add_factory_methods_to_scrive()
+
+# Version info
+__version__ = "2.0.0"
+__author__ = "Scrive Team"
+__email__ = "team@scrive.dev"
+__description__ = "A fluent regex pattern builder for Python"

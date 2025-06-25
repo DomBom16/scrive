@@ -167,16 +167,14 @@ class Scrive:
         return result
 
     # Quantifiers
-    def times(self, count: Union[int, tuple]) -> "Scrive":
+    def times(self, n: int, m: Optional[int] = None) -> "Scrive":
         """Apply quantifier `{n}` or `{n,m}` to the pattern."""
-        if isinstance(count, int):
-            return self._apply_quantifier(f"{{{count}}}", count_values=(count,))
-        elif isinstance(count, tuple) and len(count) == 2:
-            return self.between(count[0], count[1])
+        if m is None:
+            # Single count: {n}
+            return self._apply_quantifier(f"{{{n}}}", count_values=(n,))
         else:
-            raise ValueError(
-                f"Count must be int or tuple of two ints, got {type(count).__name__}: {count}"
-            )
+            # Range: {min,max}
+            return self.between(n, m)
 
     def one_or_more(self) -> "Scrive":
         """Apply + quantifier (one or more)."""
@@ -247,6 +245,34 @@ class Scrive:
             result._pattern = f"{self._pattern}?"
         return result
 
+    # Enhanced lazy quantifiers
+    def maybe_lazy(self) -> "Scrive":
+        """Apply ?? quantifier (lazy zero or one)."""
+        result = self.copy()
+        if self._needs_grouping_for_quantifier():
+            result._pattern = f"(?:{self._pattern})??"
+        else:
+            result._pattern = f"{self._pattern}??"
+        return result
+
+    def one_or_more_lazy(self) -> "Scrive":
+        """Apply +? quantifier (lazy one or more)."""
+        result = self.copy()
+        if self._needs_grouping_for_quantifier():
+            result._pattern = f"(?:{self._pattern})+?"
+        else:
+            result._pattern = f"{self._pattern}+?"
+        return result
+
+    def zero_or_more_lazy(self) -> "Scrive":
+        """Apply *? quantifier (lazy zero or more)."""
+        result = self.copy()
+        if self._needs_grouping_for_quantifier():
+            result._pattern = f"(?:{self._pattern})*?"
+        else:
+            result._pattern = f"{self._pattern}*?"
+        return result
+
     # Grouping
     def grouped_as(self, name: str) -> "Scrive":
         """Create a named capture group."""
@@ -313,12 +339,33 @@ class Scrive:
         result._pattern = f"{self._pattern}(?!{lookahead})"
         return result
 
+    # Enhanced lookahead/lookbehind methods with better names
+    def followed_by(self, pattern: Union["Scrive", str]) -> "Scrive":
+        """Positive lookahead assertion (alias for before)."""
+        return self.before(pattern)
+
+    def not_followed_by(self, pattern: Union["Scrive", str]) -> "Scrive":
+        """Negative lookahead assertion (alias for not_before)."""
+        return self.not_before(pattern)
+
+    def preceded_by(self, pattern: Union["Scrive", str]) -> "Scrive":
+        """Positive lookbehind assertion (alias for after)."""
+        return self.after(pattern)
+
+    def not_preceded_by(self, pattern: Union["Scrive", str]) -> "Scrive":
+        """Negative lookbehind assertion (alias for not_after)."""
+        return self.not_after(pattern)
+
     # Anchors
     def start_of_string(self) -> "Scrive":
         """Add start of string anchor `^`."""
         result = self.copy()
         result._pattern = f"^{self._pattern}"
         return result
+
+    def anchor_both(self) -> "Scrive":
+        """Add start and end of string anchors (alias for anchor_string)."""
+        return self.anchor_string()
 
     def end_of_string(self) -> "Scrive":
         """Add end of string anchor `$`."""
@@ -332,12 +379,36 @@ class Scrive:
         result._pattern = f"^{self._pattern}$"
         return result
 
+    def anchor_both_lines(self) -> "Scrive":
+        """Add start and end of line anchors (alias for anchor_line)."""
+        return self.anchor_line()
+
     def start_of_line(self) -> "Scrive":
         """Add start of line anchor `^` (requires MULTILINE flag)."""
         result = self.copy()
         result._pattern = f"^{self._pattern}"
         result._flags |= re.MULTILINE
         return result
+
+    # Enhanced flag methods
+    def case_insensitive(self) -> "Scrive":
+        """Add case-insensitive flag (alias for ignore_case)."""
+        return self.ignore_case()
+
+    def case_sensitive(self) -> "Scrive":
+        """Remove case-insensitive flag."""
+        result = self.copy()
+        result._flags &= ~re.IGNORECASE
+        return result
+
+    # Enhanced chaining methods
+    def then(self, *others: Union["Scrive", str]) -> "Scrive":
+        """Chain patterns together (alias for and_)."""
+        return self.and_(*others)
+
+    def or_else(self, *others: Union["Scrive", str]) -> "Scrive":
+        """Create alternation (alias for or_)."""
+        return self.or_(*others)
 
     def end_of_line(self) -> "Scrive":
         """Add end of line anchor `$` (requires MULTILINE flag)."""
@@ -384,6 +455,23 @@ class Scrive:
         result._flags |= re.DOTALL
         return result
 
+    # Enhanced utility methods
+    def repeat(self, count: Union[int, tuple]) -> "Scrive":
+        """Apply quantifier (alias for times)."""
+        return self.times(count)
+
+    def optional(self) -> "Scrive":
+        """Make pattern optional (alias for maybe)."""
+        return self.maybe()
+
+    def capture(self, name: Optional[str] = None) -> "Scrive":
+        """Create capture group (alias for group)."""
+        return self.group(name)
+
+    def named(self, name: str) -> "Scrive":
+        """Create named capture group (alias for grouped_as)."""
+        return self.grouped_as(name)
+
     def verbose(self) -> "Scrive":
         """Add verbose flag for readable regex."""
         result = self.copy()
@@ -429,6 +517,12 @@ class Scrive:
         if callable(repl):
             return compiled.sub(repl, text, count)
         return compiled.sub(repl, text, count)
+
+    def replace(
+        self, text: str, replacement: Union[str, Callable], count: int = 0
+    ) -> str:
+        """Replace matches in text with replacement (alias for sub)."""
+        return self.sub(replacement, text, count)
 
     def separated_by(self, separator: "Scrive", count: int) -> "Scrive":
         """Create pattern with this element repeated 'count' times, separated by 'separator'.

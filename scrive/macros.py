@@ -1,7 +1,7 @@
 import re
 from typing import Union
 
-from .standalone import char_range, digit, exactly
+# Import functions directly from core/factory instead of standalone
 from .core import Scrive
 
 
@@ -14,7 +14,9 @@ def choice(*patterns: Union[Scrive, str]) -> Scrive:
 
     if len(patterns) == 1:
         pattern = patterns[0]
-        return pattern if isinstance(pattern, Scrive) else exactly(str(pattern))
+        return (
+            pattern if isinstance(pattern, Scrive) else Scrive(re.escape(str(pattern)))
+        )
 
     # Collect all pattern strings
     pattern_strs = []
@@ -44,7 +46,7 @@ def create(*patterns: Union[Scrive, str], flags: int = 0) -> Scrive:
         if isinstance(pattern, Scrive):
             combined = combined + pattern
         else:
-            combined = combined + exactly(str(pattern))
+            combined = combined + Scrive(re.escape(str(pattern)))
 
     return combined
 
@@ -69,9 +71,9 @@ def separated_by(
 
     # Convert to Scrive objects if needed
     if not isinstance(element, Scrive):
-        element = exactly(str(element))
+        element = Scrive(re.escape(str(element)))
     if not isinstance(separator, Scrive):
-        separator = exactly(str(separator))
+        separator = Scrive(re.escape(str(separator)))
 
     if count == 1:
         return Scrive(element.pattern)
@@ -131,7 +133,7 @@ def decimal_range(min_val: int, max_val: int) -> Scrive:
 def _generate_numeric_range(min_val: int, max_val: int) -> Scrive | None:
     """Generate pattern for numeric range using recursive digit-by-digit approach."""
     if min_val == max_val:
-        return exactly(str(min_val))
+        return Scrive(re.escape(str(min_val)))
 
     if min_val > max_val:
         return None
@@ -166,7 +168,7 @@ def _generate_digit_by_digit(
         if position == len(min_str) - 1:
             # Last digit - create character range or exact match
             if min_digit == max_digit:
-                patterns.append(exactly(str(digit_val)))
+                patterns.append(Scrive(re.escape(str(digit_val))))
             else:
                 # We'll handle this as a range after the loop
                 pass
@@ -176,34 +178,36 @@ def _generate_digit_by_digit(
                 # Same digit in both bounds - recurse with same constraints
                 sub_pattern = _generate_digit_by_digit(min_str, max_str, position + 1)
                 if sub_pattern:
-                    patterns.append(exactly(str(digit_val)) + sub_pattern)
+                    patterns.append(Scrive(re.escape(str(digit_val))) + sub_pattern)
             elif digit_val == min_digit:
                 # First digit - constrain by minimum for remaining digits
                 remaining_min = min_str[position + 1 :]
                 remaining_max = "9" * (len(min_str) - position - 1)
                 sub_pattern = _generate_digit_by_digit(remaining_min, remaining_max, 0)
                 if sub_pattern:
-                    patterns.append(exactly(str(digit_val)) + sub_pattern)
+                    patterns.append(Scrive(re.escape(str(digit_val))) + sub_pattern)
             elif digit_val == max_digit:
                 # Last digit - constrain by maximum for remaining digits
                 remaining_min = "0" * (len(min_str) - position - 1)
                 remaining_max = max_str[position + 1 :]
                 sub_pattern = _generate_digit_by_digit(remaining_min, remaining_max, 0)
                 if sub_pattern:
-                    patterns.append(exactly(str(digit_val)) + sub_pattern)
+                    patterns.append(Scrive(re.escape(str(digit_val))) + sub_pattern)
             else:
                 # Middle digit - any remaining digits allowed
-                remaining_pattern = digit()
+                remaining_pattern = Scrive("\\d")
                 for _ in range(len(min_str) - position - 2):
-                    remaining_pattern = remaining_pattern + digit()
-                patterns.append(exactly(str(digit_val)) + remaining_pattern)
+                    remaining_pattern = remaining_pattern + Scrive("\\d")
+                patterns.append(Scrive(re.escape(str(digit_val))) + remaining_pattern)
 
     # Handle range at final position
     if position == len(min_str) - 1 and min_digit != max_digit:
         if min_digit == 0 and max_digit == 9:
-            patterns = [digit()]
+            patterns = [Scrive("\\d")]
         else:
-            patterns = [char_range(str(min_digit), str(max_digit))]
+            patterns = [
+                Scrive(f"[{re.escape(str(min_digit))}-{re.escape(str(max_digit))}]")
+            ]
 
     if len(patterns) == 0:
         return None

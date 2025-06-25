@@ -1,7 +1,50 @@
-from .standalone import ascii, char, digit, exactly, hexadecimal, letter, word_char
+import re
+
 from .core import Scrive
 from .macros import choice, decimal_range, separated_by
-from .quantifiers import maybe, one_or_more, zero_or_more
+
+
+# Helper functions to replace removed imports
+def exactly(text: str) -> Scrive:
+    return Scrive(re.escape(text))
+
+
+def char(chars: str) -> Scrive:
+    if len(chars) == 1:
+        return Scrive(re.escape(chars))
+    return Scrive(f"[{re.escape(chars)}]")
+
+
+def digit() -> Scrive:
+    return Scrive("\\d")
+
+
+def letter() -> Scrive:
+    return Scrive("[a-zA-Z]")
+
+
+def word_char() -> Scrive:
+    return Scrive("\\w")
+
+
+def hexadecimal() -> Scrive:
+    return Scrive("[0-9a-fA-F]")
+
+
+def ascii() -> Scrive:
+    return Scrive("[ -~]")
+
+
+def maybe(pattern: Scrive) -> Scrive:
+    return pattern.maybe()
+
+
+def one_or_more(pattern: Scrive) -> Scrive:
+    return pattern.one_or_more()
+
+
+def zero_or_more(pattern: Scrive) -> Scrive:
+    return pattern.zero_or_more()
 
 
 def email() -> Scrive:
