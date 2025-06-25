@@ -19,7 +19,7 @@ def read_readme():
 
 setup(
     name="scrive",
-    version="1.0.0",
+    version="0.2.0",
     description="A Pythonic regex pattern builder",
     long_description=read_readme(),
     long_description_content_type="text/markdown",

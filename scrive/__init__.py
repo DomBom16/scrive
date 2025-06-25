@@ -82,7 +82,7 @@ def _add_factory_methods_to_scrive():
 _add_factory_methods_to_scrive()
 
 # Version info
-__version__ = "2.0.0"
-__author__ = "Scrive Team"
-__email__ = "team@scrive.dev"
+__version__ = "0.2.0"
+__author__ = "Domenic Urso"
+__email__ = "domenicjurso@gmail.com"
 __description__ = "A fluent regex pattern builder for Python"
