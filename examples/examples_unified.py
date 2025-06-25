@@ -23,7 +23,7 @@ def basic_patterns():
     print(f"Lowercase: {lowercase}")
 
     # Negation
-    consonants = S.none_of("aeiou")
+    consonants = S.not_char("aeiou")
     print(f"Consonants: {consonants}")
 
     # Common classes
@@ -179,8 +179,8 @@ def advanced_examples():
     print(f"Password pattern: {password}")
 
     # CSV-like pattern with quoted fields
-    quoted_field = S.literal('"') + S.none_of('"').zero_or_more() + S.literal('"')
-    unquoted_field = S.none_of('",\n').zero_or_more()
+    quoted_field = S.literal('"') + S.not_char('"').zero_or_more() + S.literal('"')
+    unquoted_field = S.not_char('",\n').zero_or_more()
     csv_field = S.choice(quoted_field, unquoted_field)
     csv_row = csv_field + (S.literal(",") + csv_field).zero_or_more()
 
@@ -259,11 +259,11 @@ def template_and_substitution():
     print("\n=== Templates and Substitution ===")
 
     # Create reusable pattern template
-    bounded_word = S.raw("{start}\\w+{end}")
+    bounded_word = S.placeholder("start") + S.word().one_or_more() + S.placeholder("end")
 
     # Substitute different boundaries
     html_tag = bounded_word.template(start="<", end=">")
-    parenthesized = bounded_word.template(start="\\\\(", end="\\\\)")
+    parenthesized = bounded_word.template(start="(", end=")")
 
     print(f"HTML tag pattern: {html_tag}")
     print(f"Parenthesized pattern: {parenthesized}")

@@ -61,6 +61,22 @@ class S:
             >>> S.raw(r"\\d{3}-\\d{3}-\\d{4}")  # Phone number pattern
         """
         return Scrive(regex)
+        
+    @staticmethod
+    def placeholder(name: str) -> Scrive:
+        """
+        Create pattern for a placeholder.
+
+        Args:
+            name: Name of the placeholder
+
+        Returns:
+            Scrive pattern matching the placeholder
+
+        Example:
+            >>> S.placeholder("name")  # Matches placeholder "name"
+        """
+        return Scrive(f"{{{name}}}")
 
     @staticmethod
     def char(*chars: str) -> Scrive:
@@ -133,7 +149,7 @@ class S:
         return Scrive(f"[{re.escape(start)}-{re.escape(end)}]")
 
     @staticmethod
-    def none_of(*chars: str) -> Scrive:
+    def not_char(*chars: str) -> Scrive:
         """
         Match any character except the specified ones.
 
@@ -217,12 +233,32 @@ class S:
     def alphanumeric() -> Scrive:
         """Match alphanumeric character ([a-zA-Z0-9])"""
         return Scrive("[a-zA-Z0-9]")
-
+        
+    @staticmethod
+    def binary() -> Scrive:
+        """Match binary digit ([01])"""
+        return Scrive("[01]")
+        
+    @staticmethod
+    def octal() -> Scrive:
+        """Match octal digit ([0-7])"""
+        return Scrive("[0-7]")
+        
+    @staticmethod
+    def hex() -> Scrive:
+        """Match hexadecimal digit ([0-9a-fA-F])"""
+        return Scrive("[0-9a-fA-F]")
+        
     @staticmethod
     def hexadecimal() -> Scrive:
         """Match hexadecimal digit ([0-9a-fA-F])"""
-        return Scrive("[0-9a-fA-F]")
-
+        return S.hex()
+        
+    @staticmethod
+    def base64() -> Scrive:
+        """Match base64 digit ([A-Za-z0-9+/])"""
+        return Scrive("[A-Za-z0-9+\/]")
+        
     @staticmethod
     def ascii() -> Scrive:
         """Match ASCII character ([ -~])"""
@@ -233,24 +269,29 @@ class S:
     # ================================
 
     @staticmethod
-    def non_digit() -> Scrive:
+    def not_digit() -> Scrive:
         """Match any non-digit (\\D)"""
-        return Scrive("\\D")
+        return S.digit().invert()
+        
+    @staticmethod
+    def not_letter() -> Scrive:
+        """Match any non-letter ([^a-zA-Z])"""
+        return S.letter().invert()
 
     @staticmethod
-    def non_word() -> Scrive:
+    def not_word() -> Scrive:
         """Match any non-word character (\\W)"""
-        return Scrive("\\W")
+        return S.word().invert()
 
     @staticmethod
-    def non_whitespace() -> Scrive:
+    def not_whitespace() -> Scrive:
         """Match any non-whitespace character (\\S)"""
-        return Scrive("\\S")
+        return S.whitespace().invert()
 
     @staticmethod
-    def non_ascii() -> Scrive:
+    def not_ascii() -> Scrive:
         """Match non-ASCII character ([^ -~])"""
-        return Scrive("[^ -~]")
+        return S.ascii().invert()
 
     # ================================
     # Special Characters
@@ -509,37 +550,29 @@ class S:
             >>> S.uuid(4)    # UUID v4 only
         """
 
+        def _uuid(version: int) -> Scrive:
+            S.any_char().group() + S.any_char().reference(1)
+
+            return (
+                S.hex().times(8)
+                + S.literal("-")
+                + S.hex().times(4)
+                + S.literal("-")
+                + S.literal(str(version))
+                + S.hex().times(3)
+                + S.literal("-")
+                + S.char("89abAB")
+                + S.hex().times(3)
+                + S.literal("-")
+                + S.hex().times(12)
+            )
+
         if version is None:
-            # Any UUID version - use choice of all versions
-            from .patterns import (
-                uuidv1,
-                uuidv2,
-                uuidv3,
-                uuidv4,
-                uuidv5,
-                uuidv6,
-                uuidv7,
-                uuidv8,
-            )
-
-            return S.choice(
-                uuidv1(),
-                uuidv2(),
-                uuidv3(),
-                uuidv4(),
-                uuidv5(),
-                uuidv6(),
-                uuidv7(),
-                uuidv8(),
-            )
+            return S.choice(*[_uuid(v) for v in range(1, 9)])
         else:
-            # Specific version
-            from . import patterns
-
-            uuid_func = getattr(patterns, f"uuidv{version}", None)
-            if uuid_func is None:
+            if version < 1 or version > 8:
                 raise ValueError(f"UUID version {version} not supported. Use 1-8.")
-            return uuid_func()
+            return _uuid(version)
 
     # ================================
     # Number Patterns
@@ -559,7 +592,21 @@ class S:
         sign = S.char("+-").maybe()
         digits = S.digit().one_or_more()
         return sign + digits
+        
+    @staticmethod
+    def uint() -> Scrive:
+        """
+        Match unsigned integer number pattern.
 
+        Returns:
+            Scrive pattern matching unsigned integers
+
+        Example:
+            >>> S.uint()  # Matches: 42, 17, 123
+        """
+        digits = S.digit().one_or_more()
+        return digits
+        
     @staticmethod
     def decimal() -> Scrive:
         """
@@ -575,7 +622,48 @@ class S:
         integer_part = S.digit().one_or_more()
         decimal_part = (S.literal(".") + S.digit().one_or_more()).maybe()
         return sign + integer_part + decimal_part
+        
+    @staticmethod
+    def float() -> Scrive:
+        """
+        Match decimal number pattern.
 
+        Returns:
+            Scrive pattern matching decimal numbers
+
+        Example:
+            >>> S.float()  # Matches: 3.14, -2.5, +0.123
+        """
+        return S.decimal()
+        
+    @staticmethod
+    def ufloat() -> Scrive:
+        """
+        Match unsigned decimal number pattern.
+
+        Returns:
+            Scrive pattern matching unsigned decimal numbers
+
+        Example:
+            >>> S.ufloat()  # Matches: 3.14, 2.5, 0.123
+        """
+        integer_part = S.digit().one_or_more()
+        decimal_part = (S.literal(".") + S.digit().one_or_more()).maybe()
+        return integer_part + decimal_part
+        
+    @staticmethod
+    def udecimal() -> Scrive:
+        """
+        Match unsigned decimal number pattern.
+
+        Returns:
+            Scrive pattern matching unsigned decimal numbers
+
+        Example:
+            >>> S.udecimal()  # Matches: 3.14, 2.5, 0.123
+        """
+        return S.ufloat()
+        
     @staticmethod
     def number_range(min_val: int, max_val: int) -> Scrive:
         """

@@ -91,30 +91,8 @@ def demo_pattern_building():
         ],
     )
 
-    # Phone number variations
-    phone = S.choice(
-        # (555) 123-4567
-        S.literal("(")
-        .then(S.digit().times(3))
-        .then(S.literal(") "))
-        .then(S.digit().times(3))
-        .then(S.literal("-"))
-        .then(S.digit().times(4)),
-        # 555-123-4567
-        S.digit()
-        .times(3)
-        .then(S.literal("-"))
-        .then(S.digit().times(3))
-        .then(S.literal("-"))
-        .then(S.digit().times(4)),
-        # 555.123.4567
-        S.digit()
-        .times(3)
-        .then(S.literal("."))
-        .then(S.digit().times(3))
-        .then(S.literal("."))
-        .then(S.digit().times(4)),
-    ).anchor_string()
+    # Phone number variations - use the built-in phone pattern
+    phone = S.phone().anchor_string()
 
     print_example(
         "2. Phone Numbers - multiple formats with choice",
@@ -122,9 +100,9 @@ def demo_pattern_building():
         [
             ("(555) 123-4567", True),
             ("555-123-4567", True),
+            ("+1 555 123 4567", True),
             ("555.123.4567", True),
-            ("5551234567", False),
-            ("555-12-34567", False),
+            ("abc-def-ghij", False),
         ],
     )
 
@@ -203,6 +181,7 @@ def demo_data_extraction():
 
     # Extract version numbers
     version = S.sequence(
+        S.char("v", "V").maybe(),
         S.digit().one_or_more().group("major"),
         S.literal("."),
         S.digit().one_or_more().group("minor"),
@@ -229,10 +208,10 @@ def demo_csv_parsing():
 
     # CSV field with quoted and unquoted support
     quoted_field = (
-        S.literal('"').then(S.none_of('"').zero_or_more()).then(S.literal('"'))
+        S.literal('"').then(S.not_char('"').zero_or_more()).then(S.literal('"'))
     )
 
-    unquoted_field = S.none_of('",\n').one_or_more()
+    unquoted_field = S.not_char('",\n').one_or_more()
 
     csv_field = S.choice(quoted_field, unquoted_field)
     csv_row = csv_field.then(S.literal(",").then(csv_field).zero_or_more())
@@ -261,23 +240,19 @@ def demo_log_parsing():
     # Apache log format
     apache_log = S.sequence(
         S.ipv4().group("ip"),  # IP address
-        S.space(),
-        S.literal("-").space(),  # User identifier
-        S.literal("-").space(),  # User authentication
+        S.literal(" - - "),  # User identifier and authentication
         S.literal("[")
         .then(  # Timestamp
-            S.none_of("]").one_or_more().group("timestamp")
+            S.not_char("]").one_or_more().group("timestamp")
         )
-        .then(S.literal("]")),
-        S.space(),
+        .then(S.literal("] ")),
         S.literal('"')
         .then(  # Request
-            S.none_of('"').one_or_more().group("request")
+            S.not_char('"').one_or_more().group("request")
         )
-        .then(S.literal('"')),
-        S.space(),
+        .then(S.literal('" ')),
         S.digit().one_or_more().group("status"),  # Status code
-        S.space(),
+        S.literal(" "),
         S.digit().one_or_more().group("size"),  # Response size
     )
 
@@ -368,12 +343,13 @@ def demo_fluent_chaining():
 
     # Complex email with domain restrictions
     enterprise_email = (
-        S.word()
-        .one_or_more()  # Username
-        .then(S.literal("@"))  # @
-        .then(S.choice("company", "enterprise"))  # Allowed domains
-        .then(S.literal("."))  # .
-        .then(S.choice("com", "org", "net"))  # TLD
+        (
+            S.word().one_or_more()  # Username
+            + S.literal("@")  # @
+            + S.choice("company", "enterprise")  # Allowed domains
+            + S.literal(".")  # .
+            + S.choice("com", "org", "net")  # TLD
+        )
         .anchor_string()  # Exact match
         .ignore_case()  # Case insensitive
     )
@@ -449,6 +425,12 @@ def main():
         print("✓ Full backward compatibility")
         print()
         print("🎉 Scrive: Making regex readable and maintainable!")
+        print()
+        print("Example patterns:")
+        print(f"UUID (any version): {S.uuid()}")
+        print(f"UUID v4: {S.uuid(4)}")
+        print(f"Email: {S.email()}")
+        print(f"IPv4: {S.ipv4()}")
 
     except ImportError as e:
         print(f"❌ Import error: {e}")

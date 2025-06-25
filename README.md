@@ -2,10 +2,6 @@
 
 # Scrive
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue?style=for-the-badge)](https://github.com/your-repo/scrive)
-[![Python](https://img.shields.io/badge/python-3.7+-green?style=for-the-badge)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
-
 **Scrive** (rooted from "Scribe") is a modern, fluent regex pattern builder for Python that makes complex regular expressions readable, maintainable, and discoverable.
 
 ## Why Scrive?
@@ -14,30 +10,28 @@
 
 ```python
 import re
-pattern = re.compile(r'^[a-zA-Z][\w]{2,19}$')  # What does this do?
+pattern = re.compile(r'^[a-zA-Z]\w{2,19}$')  # What does this do?
 ```
 
 **After** - Scrive makes it self-documenting:
 
 ```python
 from scrive import S
-pattern = S.letter().then(S.word().times(2, 19)).anchor_string()  # Clear!
+pattern = S.letter().then(S.word().between(2, 19)).anchor_string()  # Clear!
 ```
-
-## Key Features
-
-- **🎯 Single Import** - Everything through `from scrive import S`
-- **🔗 Fluent Chaining** - Build patterns step by step with method chaining
-- **📚 Built-in Patterns** - Email, URL, IPv4, phone numbers, and more
-- **🚀 Auto-Optimization** - Patterns are automatically optimized for performance
-- **💡 IDE-Friendly** - Excellent autocomplete and discoverability
-- **🔄 Backward Compatible** - Existing code continues to work
-- **✅ Well-Tested** - Comprehensive test suite with 82+ tests
 
 ## Installation
 
+Install Scrive using `pip` or your favorite package manager.
+
 ```bash
 pip install scrive
+```
+
+After that, simply import the `S` class:
+
+```python
+from scrive import S  # easy as that!
 ```
 
 ## Quick Start
@@ -72,7 +66,7 @@ phone = S.choice(
 
 ```python
 # Text and characters
-S.literal("hello")           # Exact text (escaped)
+S.literal("hello")          # Exact text (escaped)
 S.char("a", "e", "i")       # Character class [aei]
 S.char_range("a", "z")      # Range [a-z]
 S.raw(r"\d+")               # Raw regex (unescaped)
@@ -82,11 +76,17 @@ S.digit()                   # \d (digits)
 S.letter()                  # [a-zA-Z] (letters)
 S.word()                    # \w (word characters)
 S.whitespace()              # \s (whitespace)
+S.ascii()                   # [ -~] (ascii characters)
 S.any_char()                # . (any character)
+# ...and more
 
 # Negated classes
-S.non_digit()               # \D
-S.none_of("aeiou")          # [^aeiou] (consonants)
+S.not_digit()               # \D
+S.not_letter()              # \W (non-word characters)
+S.not_word()                # \W (non-word characters)
+S.not_whitespace()          # \S (non-whitespace characters)
+S.not_ascii()               # [^ -~] (non-ascii characters)
+S.not_char("aeiou")         # [^aeiou] (everything but the given characters)
 ```
 
 ### Quantifiers
@@ -126,10 +126,10 @@ S.non_word_boundary()       # \B standalone
 
 ```python
 # Lookahead/lookbehind
-pattern.followed_by(S.digit())      # (?=\d) positive lookahead
-pattern.not_followed_by(S.digit())  # (?!\d) negative lookahead
-pattern.preceded_by(S.letter())     # (?<=[a-zA-Z]) positive lookbehind
-pattern.not_preceded_by(S.letter()) # (?<![a-zA-Z]) negative lookbehind
+pattern.followed_by(S.digit())          # (?=\d) positive lookahead
+pattern.not_followed_by(S.digit())      # (?!\d) negative lookahead
+pattern.preceded_by(S.letter())         # (?<=[a-zA-Z]) positive lookbehind
+pattern.not_preceded_by(S.letter())     # (?<![a-zA-Z]) negative lookbehind
 ```
 
 ### Combinators
@@ -139,10 +139,26 @@ pattern.not_preceded_by(S.letter()) # (?<![a-zA-Z]) negative lookbehind
 S.literal("hello").then(S.space()).then(S.word().one_or_more())
 
 # Alternation (OR)
-S.choice("cat", "dog", "bird")      # Optimized to (?:cat|dog|bird)
+S.choice("cat", "dog", "bird")              # Optimized to (?:cat|dog|bird)
 
 # Repetition with separators
-S.digit().separated_by(S.literal("."), 4)  # For IPv4: \d\.\d\.\d\.\d
+S.digit().separated_by(S.literal("."), 4)   # \d\.\d\.\d\.\d
+```
+
+### Joining Patterns
+
+```python
+# Sequence method
+# (does not support alternation on its own)
+S.sequence(S.literal("hello"), S.space(), S.word().one_or_more())
+
+# Operators
+S.literal("hello") + S.space() + S.word().one_or_more()
+S.literal("cat") | S.literal("dog") | S.literal("bird")
+
+# Chaining
+S.literal("hello").then(S.space()).then(S.word().one_or_more())
+S.literal("cat").or_else(S.literal("dog")).or_else(S.literal("bird"))
 ```
 
 ## Built-in Patterns
@@ -170,16 +186,41 @@ S.number_range(1, 100)      # Numbers in specific range
 
 ```python
 # Pattern testing
-pattern.test("hello")               # Boolean match (substring search)
-pattern.exact_match("hello")       # Boolean exact match
-pattern.match("hello")              # Match from start
-pattern.search("hello")             # Search anywhere
-pattern.find_all("hello world")    # Find all matches
-pattern.split("a,b,c")             # Split by pattern
+pattern.test("hello")                   # Boolean match (substring search)
+pattern.exact_match("hello")            # Boolean exact match
+pattern.match("hello")                  # Match from start
+pattern.search("hello")                 # Search anywhere
+pattern.find_all("hello world")         # Find all matches
+pattern.split("a,b,c")                  # Split by pattern
 pattern.replace("text", "replacement")  # Replace matches
 
 # Compilation
-compiled = pattern.compile()        # Get re.Pattern object
+compiled = pattern.compile()            # Get re.Pattern object
+```
+
+### Examples
+
+```python
+# API endpoint validation
+api_endpoint = (
+    S.literal("/api/v")
+    .then(S.digit().one_or_more())
+    .then(S.literal("/"))
+    .then(S.word().one_or_more())
+    .anchor_string()
+)
+
+# Database field validation
+user_id = S.literal("user_").then(S.digit().times(6, 12)).anchor_string()
+
+# Log file parsing
+nginx_log = S.sequence(
+    S.ipv4().group("client_ip"),
+    S.space(),
+    S.literal("[").then(S.none_of("]").one_or_more().group("timestamp")).then(S.literal("]")),
+    S.space(),
+    S.literal('"').then(S.any_char().one_or_more().group("request")).then(S.literal('"'))
+)
 ```
 
 ## Real-World Examples
@@ -197,10 +238,28 @@ password = (
     .then(S.end_of_string())
 )
 
-# Credit card (basic format)
-credit_card = S.digit().times(4).then(
-    S.char(" -").maybe().then(S.digit().times(4))
-).times(3).anchor_string()
+# Credit card validation with multiple formats
+credit_card = S.choice(
+    # Visa: 4xxx-xxxx-xxxx-xxxx
+    S.literal("4").then(S.digit().times(3)).then(S.literal("-")).then(
+        S.digit().times(4).then(S.literal("-")).times(2)
+    ).then(S.digit().times(4)),
+    # MasterCard: 5xxx xxxx xxxx xxxx
+    S.char("5").then(S.digit().times(3)).then(S.space()).then(
+        S.digit().times(4).then(S.space()).times(2)
+    ).then(S.digit().times(4))
+).anchor_string()
+
+# International phone numbers
+phone = S.choice(
+    # US format: (555) 123-4567
+    S.literal("(").then(S.digit().times(3)).then(S.literal(") "))
+     .then(S.digit().times(3)).then(S.literal("-")).then(S.digit().times(4)),
+    # International: +1-555-123-4567
+    S.literal("+").then(S.digit().times(1, 3)).then(S.literal("-"))
+     .then(S.digit().times(3)).then(S.literal("-")).then(S.digit().times(3))
+     .then(S.literal("-")).then(S.digit().times(4))
+).anchor_string()
 ```
 
 ### Data Extraction
@@ -254,54 +313,28 @@ enterprise_email = (
 )
 ```
 
-## Migration from 1.x
+## Performance & Optimization
 
-The 2.0 unified API is designed for easy migration:
+Scrive includes an intelligent optimization engine that automatically improves your patterns:
 
-### Before (1.x - Fragmented)
-
-```python
-from scrive import digit, exactly, one_or_more, separated_by
-from scrive.patterns import email
-from scrive.anchors import start_of_string, end_of_string
-
-# Multiple imports, hard to discover
-ipv4 = separated_by(digit().between(1, 3), exactly("."), 4)
-ipv4 = start_of_string() + ipv4 + end_of_string()
-```
-
-### After (2.0 - Unified)
+### Automatic Pattern Optimization
 
 ```python
-from scrive import S
+# Character ranges - automatically detects sequences
+S.char("a", "b", "c", "d", "e")     # Automatically becomes [a-e]
+S.char("0", "1", "2", "3")          # Automatically becomes [0-3]
 
-# Single import, everything discoverable
-ipv4 = S.number_range(0, 255).separated_by(S.literal("."), 4).anchor_string()
-# Or use built-in:
-ipv4 = S.ipv4().anchor_string()
-```
+# Choice optimization - converts to character classes when possible
+S.choice("1", "2", "3", "4")        # Automatically becomes [1-4]
+S.choice("cat", "dog", "bird")      # Stays as (?:cat|dog|bird)
 
-### Migration Steps
-
-1. **Replace imports**: Change to `from scrive import S`
-2. **Use factory methods**: Replace function calls with `S.method()`
-3. **Leverage built-ins**: Use `S.email()`, `S.ipv4()` instead of building from scratch
-4. **Update method names**: `before()` → `followed_by()`, etc.
-
-## Performance
-
-Scrive automatically optimizes patterns:
-
-```python
-# Character ranges
-S.char("a", "b", "c", "d", "e")     # Becomes [a-e]
-
-# Choice optimization
-S.choice("1", "2", "3", "4")        # Becomes [1-4]
-
-# Smart grouping
+# Smart grouping - only groups when necessary
 S.choice("cat", "dog").one_or_more() # Becomes (?:cat|dog)+
 S.digit().one_or_more()             # Stays as \d+ (no unnecessary grouping)
+
+# Number range optimization
+S.number_range(0, 255)              # Generates optimal IPv4 octet pattern
+S.number_range(1, 100)              # Optimized numeric range matching
 ```
 
 ## Contributing
@@ -328,7 +361,7 @@ python -m pytest test_unified_api.py -v
 
 ```python
 # Create reusable templates
-template = S.raw("{start}\\w+{end}")
+template = S.placeholder("start") + S.word().one_or_more() + S.placeholder("end")
 html_tag = template.template(start="<", end=">")
 parens = template.template(start="\\(", end="\\)")
 ```
@@ -362,26 +395,10 @@ def mac_address():
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Changelog
-
-### v2.0.0 - Unified API
-
-- ✨ **New**: Unified `S` factory class
-- ✨ **New**: Enhanced method chaining with intuitive aliases
-- ✨ **New**: Built-in common patterns (`S.email()`, `S.ipv4()`, etc.)
-- ✨ **New**: Automatic pattern optimization
-- ✨ **New**: Comprehensive test suite (82+ tests)
-- 🔄 **Breaking**: Simplified module structure
-- ♻️ **Removed**: Legacy scattered modules
-- 🚀 **Improved**: Developer experience and discoverability
-
-### v1.x - Legacy API
-
-- Basic pattern building functionality
-- Separate modules for different features
-
 ---
 
 **Made with ❤️ for Python developers who want readable regex patterns**
 
-🧪 [Testing](test_unified_api.md) | 🚀 [Examples](examples_unified.py) | 📈 [Demo](demo_unified_api.py)
+_"From fragmented complexity to unified elegance - Scrive makes regex patterns a joy to write and maintain."_
+
+🧪 [Testing](tests/test_unified_api.py) | 🚀 [Examples](examples/examples_unified.py) | 📈 [Demo](examples/demo_unified_api.py)

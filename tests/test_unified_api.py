@@ -53,7 +53,7 @@ class TestSFactoryBasics:
         assert not pattern.test("Z")
 
     def test_none_of(self):
-        pattern = S.none_of("aeiou")
+        pattern = S.not_char("aeiou")
         assert str(pattern) == "[^aeiou]"
         assert pattern.test("b")
         assert not pattern.test("a")
@@ -117,7 +117,7 @@ class TestSCharacterClasses:
         assert not pattern.test("!")
 
     def test_hexadecimal(self):
-        pattern = S.hexadecimal()
+        pattern = S.hex()
         assert str(pattern) == "[0-9a-fA-F]"
         assert pattern.test("a")
         assert pattern.test("F")
@@ -125,9 +125,9 @@ class TestSCharacterClasses:
         assert not pattern.test("g")
 
     def test_negated_classes(self):
-        assert str(S.non_digit()) == "\\D"
-        assert str(S.non_word()) == "\\W"
-        assert str(S.non_whitespace()) == "\\S"
+        assert str(S.not_digit()) == "\\D"
+        assert str(S.not_word()) == "\\W"
+        assert str(S.not_whitespace()) == "\\S"
 
     def test_special_chars(self):
         assert str(S.tab()) == "\\t"
@@ -555,9 +555,9 @@ class TestComplexPatterns:
     def test_csv_parsing(self):
         # Simple CSV field matching
         quoted_field = (
-            S.literal('"').then(S.none_of('"').zero_or_more()).then(S.literal('"'))
+            S.literal('"').then(S.not_char('"').zero_or_more()).then(S.literal('"'))
         )
-        unquoted_field = S.none_of('",\n').zero_or_more()
+        unquoted_field = S.not_char('",\n').zero_or_more()
         csv_field = S.choice(quoted_field, unquoted_field)
 
         assert csv_field.test('"quoted field"')
