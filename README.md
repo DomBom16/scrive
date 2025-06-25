@@ -1,4 +1,4 @@
-![Cover](https://github.com/user-attachments/assets/9fe2ae41-ac4d-4d64-9b35-a5208afcee44)
+![Scrive Cover](https://github.com/user-attachments/assets/f6165bac-8a35-4f48-a665-2bb330199854)
 
 # Scrive
 
