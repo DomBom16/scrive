@@ -442,6 +442,18 @@ def main():
         print(f"❌ Unexpected error: {e}")
         return 1
 
+    # Email validation with optional display name
+    display_name = (
+        S.literal('"')
+        + S.not_char('"').zero_or_more().named("display_name")
+        + S.literal('"')
+        + S.space()
+    )
+    email = S.literal("<").maybe() + S.email().named("email") + S.literal(">").maybe()
+    pattern = (display_name.maybe() + email).anchor_string()
+
+    print(pattern)
+
     return 0
 
 

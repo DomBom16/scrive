@@ -6,18 +6,30 @@
 
 ## Why Scrive?
 
-**Before** - Traditional regex is cryptic and hard to maintain:
+Before Scrive, regex patterns were often cryptic and hard to maintain. If you wanted to create a regex for email validation with optional display names (like `"John Doe" <john@example.com>` or just `john@example.com`), you would have to do something like the following:
 
 ```python
 import re
-pattern = re.compile(r'^[a-zA-Z]\w{2,19}$')  # What does this do?
+# Email validation with optional display name
+pattern = re.compile(r'^(?:"(?P<display_name>[^"]*)" )?<?(?P<email>[\w\-\._]+@[\w\-\.]+\.[\w\-\.]{2,6})>?$')
+# Good luck remembering what this does in 6 months!
 ```
 
-**After** - Scrive makes it self-documenting:
+Now though, Scrive makes it self-documenting with human-readable syntax:
 
 ```python
 from scrive import S
-pattern = S.letter().then(S.word().between(2, 19)).anchor_string()  # Clear!
+
+# Email validation with optional display name
+display_name = (
+    S.literal('"')
+    + S.not_char('"').zero_or_more().named("display_name")
+    + S.literal('"')
+    + S.space()
+)
+email = S.literal("<").maybe() + S.email().named("email") + S.literal(">").maybe()
+pattern = (display_name.maybe() + email).anchor_string()
+# Crystal clear what each part does!
 ```
 
 ## Installation

@@ -160,7 +160,7 @@ class S:
             Scrive pattern matching any character except those specified
 
         Example:
-            >>> S.none_of("aeiou")  # Consonants [^aeiou]
+            >>> S.not_char("aeiou")  # Consonants [^aeiou]
         """
         if len(chars) == 1 and len(chars[0]) > 1:
             all_chars = chars[0]
